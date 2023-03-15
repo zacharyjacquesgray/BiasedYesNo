@@ -12,5 +12,6 @@ USER INTERFACE (YesNoMain.swift):
 
 > <img width="355" alt="Screenshot 2023-03-15 at 7 51 13 pm" src="https://user-images.githubusercontent.com/127930775/225257085-a240da66-c679-481a-bbfa-98bb54ada62c.png">
 > <img width="383" alt="Screenshot 2023-03-15 at 7 51 44 pm" src="https://user-images.githubusercontent.com/127930775/225257155-f056ae27-4f8e-4a9a-9911-dd50f1441c51.png">
+
 > Currently displaying the JSON generated from the http request from the MySQL database, and showing basic calculations. This is just during development to see exactly what information is being generated and to ensure the correct data is being used correctly.
 <img width="373" alt="Screenshot 2023-03-15 at 7 53 31 pm" src="https://user-images.githubusercontent.com/127930775/225257182-24ce5214-4f50-413d-8b1f-c50937cdf26f.png">
