@@ -6,4 +6,4 @@ DESCRIPTION:
 
 > The general idea is that for every 10 friends you ask a yes/no question, maybe 7 will say 'yes' but 3 will say 'no'. In this case the Biased Yes/No app will then be set with a probability of 70% (depending on the question) as opposed to just 50%.
 
-> In time, the app is to take user input and use this to converge the biasedness to a general concensus.
+> In time, the app is to take user input and use this to converge the biasedness to a general concensus for each search term. Additionally will use these statistics to predict biased responses for new input terms.
