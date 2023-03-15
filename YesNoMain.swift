@@ -247,59 +247,14 @@ struct YesNoMain: View {
     
     
     // Calls to database and obtains bias for question
+    // Test codes in initial testing
     func biasOutput(question: String) -> Double{
         // Temporary data while connecting to database is not working yet.
         if (question == "Yes or no? ") {
             return 0.5
         }
-        else if (question == "Should I eat now?") {
+        else if (question == "Should I eat?") {
             return 0.7
-        }
-        else if (question == "Should I go to the movies?") {
-            return 0.14
-        }
-        else if (question == "Should I stay home today?") {
-            return 0.45
-        }
-        else if (question == "Should I go to the beach today?") {
-            return 0.6
-        }
-        else if (question == "Should I cook?") {
-            return 0.5
-        }
-        else if (question == "Should I go to the beach tomorrow?") {
-            return 0.8
-        }
-        else if (question == "Should I move this year?") {
-            return 0.95
-        }
-        else if (question == "Should I move to France?") {
-            return 0.7
-        }
-        else if (question == "Should I move to Paris?") {
-            return 0.8
-        }
-        else if (question == "Should I move to London?") {
-            return 0.6
-        }
-        else if (question == "Should I move to a new country this year?") {
-            return 0.93
-        }
-        else if (question == "Should I drink wine?") {
-            return 0.7
-        }
-        else if (question == "Should I still go to Singapore in May?") {
-            return 0.9
-        }
-        else if (question == "Can I still go to Singapore in May?") {
-            return 0.9
-        }
-        else if (question == "Can I go to Harvard this year?") {
-            return 0.4
-        }
-        // if blank, return the same probability as the last entered question.
-        else if (question == "") {
-            return bias
         }
         // if unknown query, return 50/50
         else {
