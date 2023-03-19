@@ -2,7 +2,7 @@
 //  YesNoMain.swift
 //  YesNo
 //
-//  Created by Zachary-Jacques Gray of Island Société on 27/1/2023.
+//  Created by Zachary-Jacques Gray on 27/1/2023.
 //
 
 import SwiftUI
@@ -50,6 +50,7 @@ struct YesNoMain: View {
     @State var isTapped:Bool = false
     @State var questionDisplay:Bool = false
     @State var outputText = ""
+    @State var newWeight: Double = 0.5
     
     // For MYSQL-PHP
     @State private var jsonData = "Loading JSON data..."
@@ -103,13 +104,22 @@ struct YesNoMain: View {
                                         isTapped = false
                                     }
                                     bias = biasOutput(question: yesNoBias1)
-                                    YesNo(x: bias)
-                                    //loadData(parameters: ["param1": yesNoBias1]) // testing
-                                    loadWeightings(question: yesNoBias1) { result in
-                                                    if let result = result {
-                                                        outputText = result
-                                                    }
-                                                }
+                                    
+                                    loadWeightings(question: yesNoBias1) { updatedBias, error in
+                                        if error != nil {
+                                            // Handle the error
+                                            return
+                                        }
+                                        
+                                        guard let bias = updatedBias else {
+                                            // Handle the case where the updated bias value is not available
+                                            return
+                                        }
+
+                                        // Pass the updated bias value to the YesNo function
+                                        YesNo(x: bias)
+                                    }
+
                                 }
                                 .font(.custom("Arial Bold", size: 35))
                                 .foregroundColor(Color(outputColor))
@@ -133,14 +143,24 @@ struct YesNoMain: View {
                                         isTapped = false
                                     }
                                     bias = biasOutput(question: yesNoBias2)
-                                    YesNo(x: bias)
-                                    //loadData(parameters: ["param1": yesNoBias2]) // testing
-                                    loadWeightings(question: yesNoBias2) { result in
-                                                    if let result = result {
-                                                        outputText = result
-                                                    }
-                                                }
                                     
+                                    loadWeightings(question: yesNoBias2) { updatedBias, error in
+                                        if error != nil {
+                                            // Handle the error
+                                            return
+                                        }
+                                        
+                                        guard let bias = updatedBias else {
+                                            // Handle the case where the updated bias value is not available
+                                            return
+                                        }
+
+                                        // Pass the updated bias value to the YesNo function
+                                        YesNo(x: bias)
+                                    }
+
+               
+                                    //YesNo(x: bias)
                                 }
                                 .font(.custom("Arial Bold", size: 35))
                                 .foregroundColor(Color(outputColor))
@@ -152,23 +172,12 @@ struct YesNoMain: View {
                             Button(action: {
                                 if questionDisplay {
                                     bias = biasOutput(question: yesNoBias1)
-                                    //loadData(parameters: ["param1": yesNoBias1]) // testing
-                                    loadWeightings(question: yesNoBias1) { result in
-                                                    if let result = result {
-                                                        outputText = result
-                                                    }
-                                                }
                                 }
                                 else {
                                     bias = biasOutput(question: yesNoBias2)
-                                    //loadData(parameters: ["param1": yesNoBias2]) // testing
-                                    loadWeightings(question: yesNoBias1) { result in
-                                                    if let result = result {
-                                                        outputText = result
-                                                    }
-                                                }
                                 }
                                 YesNo(x: bias)
+
                             }) {
                                 Image(systemName: "arrow.up.circle")
                                     .resizable()
@@ -180,7 +189,9 @@ struct YesNoMain: View {
                         }
                         Spacer()
                         
-                        Text("JSON: \(outputText)")
+                        
+                        // Text at bottom of screen showing percentage.
+                        Text("\(Int(round(newWeight * 100)))%")
                             .padding()
                             .font(.custom("Arial", size: 20))
                             .foregroundColor(.white)
@@ -248,18 +259,31 @@ struct YesNoMain: View {
     
     // Calls to database and obtains bias for question
     func biasOutput(question: String) -> Double{
-        // Temporary data while connecting to database is not working yet.
-        if (question == "Yes or no? ") {
-            return 0.5
+        
+        // Create calculation for bias from database
+        loadWeightings(question: question) { result, error in
+            if let error = error {
+                print("Error loading weightings: \(error.localizedDescription)")
+            } else if let result = result {
+                newWeight = Double(result)
+                outputText = "\(newWeight)"
+            }
         }
-        else if (question == "Should I eat ?") {
-            return 0.7
+
+        // run
+        if (newWeight >= 0 && newWeight <= 1) {
+            return newWeight
         }
-        // if blank, return the same probability as the last entered question.
-        else if (question == "") {
+        else if (newWeight < 0) {
+            return 0
+        }
+        else if (newWeight > 1) {
+            return newWeight
+        }
+        /*else if (question == "") {
             return bias
-        }
-        // if unknown query, return 50/50
+        }*/
+        // if for some reason, result is not valid provide an output
         else {
             return 0.5
         }
@@ -293,7 +317,8 @@ struct YesNoMain: View {
     func yesNoDisplay(_ Yes:Bool) {
         // Yes Display
         if Yes {
-            yesNoBias = "Yes:  \(outputText)"
+            //yesNoBias = "Yes:  \(outputText)"
+            yesNoBias = "Yes"
             yesNoColor1 = "YesColor1"
             yesNoColor2 = "YesColor2"
             outputColor = "White"
@@ -307,7 +332,8 @@ struct YesNoMain: View {
         }
         // No Display
         else {
-            yesNoBias = "No:  \(outputText)"
+            // yesNoBias = "No:  \(outputText)"
+            yesNoBias = "No"
             yesNoColor1 = "NoColor1"
             yesNoColor2 = "NoColor2"
             outputColor = "White"
@@ -321,7 +347,7 @@ struct YesNoMain: View {
             }
         }
     }
-    
+
     func loadData(parameters: [String: String], completion: @escaping (Data?, Error?) -> Void) {
         guard let url = URL(string: "\(baseURL)") else {
             print("Invalid URL")
@@ -346,17 +372,25 @@ struct YesNoMain: View {
                 return
             }
 
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode != 200 {
+                    print("HTTP Error: \(httpResponse.statusCode)")
+                    completion(nil, NSError(domain: "HTTPErrorDomain", code: httpResponse.statusCode, userInfo: nil))
+                    return
+                }
+            }
+
             guard let data = data else {
                 print("No data received")
-                completion(nil, nil)
+                completion(nil, NSError(domain: "NoDataReceivedDomain", code: 0, userInfo: nil))
                 return
             }
 
             completion(data, nil)
         }.resume()
     }
-
-    func loadWeightings(question: String, completion: @escaping (String?) -> Void) {
+    
+    func loadWeightings(question: String, completion: @escaping (Double?, Error?) -> Void) {
         let keywords = question.split(separator: " ")
         var parameters = [String: String]()
         for (index, keyword) in keywords.enumerated() {
@@ -366,13 +400,14 @@ struct YesNoMain: View {
         loadData(parameters: parameters) { data, error in
             if let error = error {
                 print("Error: \(error)")
-                completion(nil)
+                completion(nil, error)
                 return
             }
 
             guard let data = data else {
                 print("No data received")
-                completion(nil)
+                let jsonWeight = 0.5
+                completion(jsonWeight, nil)
                 return
             }
 
@@ -386,28 +421,27 @@ struct YesNoMain: View {
                             }
                             return nil
                         }
-                        let weightingsString = weightings.map { String($0) }.joined(separator: ", ")
+                        _ = weightings.map { String($0) }.joined(separator: ", ")
                         
                         let weights = jsonArray.map { Weight(dictionary: $0) }
                         
-                        let total = weights.reduce(0) { $0 + $1.weighting }
+                        // Calculation of weightings:
+                        let totalWeight = weights.reduce(0) { $0 + $1.weighting }
+                        let averageWeight = Double(totalWeight) / Double(weights.count)
+                        //let jsonString = "\(averageWeight) || \(weightingsString) || \(jsonArray)"
+                        //print(jsonString)
                         
-                        let jsonString = "\(total) || \(weightingsString) || \(jsonArray)"
-                        completion(jsonString)
+                        let jsonWeight = averageWeight
+                        completion(jsonWeight, nil)
                     }
                 }
-
             } catch {
                 print("Error decoding JSON: \(error)")
-                completion(nil)
+                completion(nil, error)
             }
         }
     }
-
     
-
-
-
 }
 
 
@@ -429,14 +463,4 @@ struct YesNoMain_Previews: PreviewProvider {
  > Am I not smart? = 30%
  
  - If no input entered, but button is pressed, use 50%/50% Yes-No.
- 
- - Gamify user panel, show red or green of what majority chose for either no/yes. Test to incentivise what keeps people doing more.
- - Find appropriate percentage and variability of yes/no to show. If needed can show opposite wording to keep people going.
- - In theory this should keep people going since they want to be right (in the majority). However also want to ensure that people will stay on because if they keep seeing no it might mean they don't trust the bias.
- 
- - Use econometric analysis to add weightings to each word.
- - E.g. see if using the word "Should" increases likelihood of yes or no. If not significant, then can be a null word that gets ignored on analysis. If significant, then combines with other words.
- - Need to filter random typing into input field.
- - Cache entire dictionary of entries to phone with each value. Should be about 1-5Mb.
- 
- */
+
