@@ -22,10 +22,10 @@ if ($_POST['function'] == 'mySQLFunction') {
             $params[] = $value;
         }
     }
-    
+
     // Build the SQL query dynamically
     $placeholders = implode(',', array_fill(0, count($params), '?'));
-    $sql = "SELECT weighting FROM output WHERE keyword IN ($placeholders)";
+    $sql = "SELECT keyword, weighting FROM output WHERE keyword IN ($placeholders)";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param(str_repeat('s', count($params)), ...$params);
@@ -33,15 +33,21 @@ if ($_POST['function'] == 'mySQLFunction') {
     $result = $stmt->get_result();
     
     if ($result->num_rows > 0) {
+        // If results are found, build the JSON array from the query results
         $rows = array();
         while($row = $result->fetch_assoc()) {
             $rows[] = $row;
         }
-        header('Content-Type: application/json');
-        echo json_encode($rows);
     } else {
-        echo "No data found.";
+        // If no results are found, build the JSON array with a weighting of 0.5 for all keywords
+        $rows = array();
+        foreach ($params as $param) {
+            $rows[] = array('keyword' => $param, 'weighting' => 0.5);
+        }
     }
+    
+    header('Content-Type: application/json');
+    echo json_encode($rows);
 }
 
 $conn->close();
