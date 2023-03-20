@@ -2,7 +2,7 @@
 //  YesNoMain.swift
 //  YesNo
 //
-//  Created by Zachary-Jacques Gray on 27/1/2023.
+//  Created by Zachary-Jacques Gray of Island Société on 27/1/2023.
 //
 
 import SwiftUI
@@ -11,7 +11,7 @@ import SwiftUI
 // start addition
 struct Weight {
     let weighting: Double
-
+    
     init(dictionary: [String: Any]) {
         if let weightingValue = dictionary["weighting"] as? Double {
             self.weighting = weightingValue
@@ -52,6 +52,10 @@ struct YesNoMain: View {
     @State var outputText = ""
     @State var newWeight: Double = 0.5
     
+    // for keeping the keyboard on screen
+    @FocusState private var isFocused: Bool
+
+    
     // For MYSQL-PHP
     @State private var jsonData = "Loading JSON data..."
     let baseURL = "http://islandtechnologies.co/SQLoutputMultiple.php"
@@ -72,10 +76,8 @@ struct YesNoMain: View {
     }
     
     var body: some View {
-        
         NavigationView {
             // Look into TabView??
-            
             ZStack {
                 // Yes-No area
                 ZStack{
@@ -90,94 +92,37 @@ struct YesNoMain: View {
                         // HStack -- Text input and button
                         HStack {
                             // if-else toggles to show previous response whilst allowing a new input to be entered.
-                            if questionDisplay {
-                                TextField("Yes or No ?",text: $yesNoBias1) { (status) in
-                                    // it will fire when text field is clicked ...
-                                    if status{
-                                        withAnimation(.easeIn){
-                                            isTapped = true
-                                        }
-                                    }
-                                } onCommit:{
-                                    // it will fire when return button is pressed ...
-                                    withAnimation(.easeOut){
-                                        isTapped = false
-                                    }
-                                    bias = biasOutput(question: yesNoBias1)
-                                    
-                                    loadWeightings(question: yesNoBias1) { updatedBias, error in
-                                        if error != nil {
-                                            // Handle the error
-                                            return
-                                        }
-                                        
-                                        guard let bias = updatedBias else {
-                                            // Handle the case where the updated bias value is not available
-                                            return
-                                        }
-
-                                        // Pass the updated bias value to the YesNo function
-                                        YesNo(x: bias)
-                                    }
-
+                            TextField("Yes or No ?", text: questionDisplay ? $yesNoBias1 : $yesNoBias2) { status in
+                                // Triggered when text field is clicked
+                                withAnimation(.easeIn) {
+                                    isTapped = status
                                 }
-                                .font(.custom("Arial Bold", size: 35))
-                                .foregroundColor(Color(outputColor))
-                                .bold()
-                                .padding(.horizontal, 25)
-                            }
-                            else
-                            {
-                                TextField("Yes or No ?",text: $yesNoBias2) {
-                                    
-                                    (status) in
-                                    // it will fire when text field is clicked ...
-                                    if status{
-                                        withAnimation(.easeIn){
-                                            isTapped = true
-                                        }
-                                    }
-                                } onCommit:{
-                                    // it will fire when return button is pressed ...
-                                    withAnimation(.easeOut){
-                                        isTapped = false
-                                    }
-                                    bias = biasOutput(question: yesNoBias2)
-                                    
-                                    loadWeightings(question: yesNoBias2) { updatedBias, error in
-                                        if error != nil {
-                                            // Handle the error
-                                            return
-                                        }
-                                        
-                                        guard let bias = updatedBias else {
-                                            // Handle the case where the updated bias value is not available
-                                            return
-                                        }
-
-                                        // Pass the updated bias value to the YesNo function
-                                        YesNo(x: bias)
-                                    }
-
-               
-                                    //YesNo(x: bias)
+                            } onCommit: {
+                                // Triggered when return button is pressed
+                                withAnimation(.easeOut) {
+                                    isTapped = false
                                 }
-                                .font(.custom("Arial Bold", size: 35))
-                                .foregroundColor(Color(outputColor))
-                                .bold()
-                                .padding(.horizontal, 25)
+                                loadResult(question: questionDisplay ? yesNoBias1 : yesNoBias2)
                             }
+                            .font(.system(size: 35))
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .tracking(0.5)
+                            .foregroundColor(Color(outputColor))
+                            .padding(.horizontal, 25)
+                            .focused($isFocused) // Ensure that keyboard always shows in the view
+                            
                             Spacer()
                             // Enter button to generate Yes/No. Alternate method to hitting the return key.
                             Button(action: {
-                                if questionDisplay {
-                                    bias = biasOutput(question: yesNoBias1)
+                                let input = questionDisplay ? yesNoBias1 : yesNoBias2
+                                // if input string is empty it will run using the same weighting, if new input then submits and runs what is entered
+                                if input.isEmpty {
+                                    bias = biasOutput(question: input)
+                                    YesNo(x: bias)
+                                } else {
+                                    loadResult(question: input)
                                 }
-                                else {
-                                    bias = biasOutput(question: yesNoBias2)
-                                }
-                                YesNo(x: bias)
-
                             }) {
                                 Image(systemName: "arrow.up.circle")
                                     .resizable()
@@ -187,15 +132,16 @@ struct YesNoMain: View {
                             }
                             .padding(.horizontal, 15)
                         }
-                        Spacer()
                         
+                        Spacer()
                         
                         // Text at bottom of screen showing percentage.
                         Text("\(Int(round(newWeight * 100)))%")
                             .padding()
-                            .font(.custom("Arial", size: 20))
+                            .font(.system(size: 20))
+                            .font(.headline)
+                            .fontWeight(.bold)
                             .foregroundColor(.white)
-                        
                         
                         // Bottom area spacing to centre above text and button in observable screen
                         Rectangle()
@@ -203,35 +149,29 @@ struct YesNoMain: View {
                             .foregroundColor(.white)
                             .opacity(0)
                     }
-                    
                 }
                 
                 VStack (alignment: .leading) {
                     // if-else toggles displaying the input of the user once entered.
-                    if questionDisplay {
-                        Text(yesNoBias2)
-                            .padding(.leading, 25.0)
-                            .padding([.top,.trailing], 35)
-                            .font(.custom("Arial Bold", size: 30))
-                            .foregroundColor(Color(outputColor))
-                            .bold()
-                    } else {
-                        Text(yesNoBias1)
-                            .padding(.leading, 25.0)
-                            .padding([.top,.trailing], 35)
-                            .font(.custom("Arial Bold", size: 30))
-                            .foregroundColor(Color(outputColor))
-                            .bold()
-                    }
-                    
+                    Text(questionDisplay ? yesNoBias2 : yesNoBias1)
+                        .padding(.leading, 25.0)
+                        .padding([.top,.trailing], 35)
+                        .font(.system(size: 30))
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .tracking(0.4)
+                        .foregroundColor(Color(outputColor))
+
                     // HStack is the output Yes-No based on input question above
                     HStack {
                         Spacer()
                         Text(yesNoBias)
                             .padding([.top, .leading, .trailing], 25.0)
-                            .font(.custom("Arial Bold", size: 30))
+                            .font(.system(size: 30))
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .tracking(0.4)
                             .foregroundColor(Color(outputColor))
-                            .bold()
                     }
                     
                     Spacer()
@@ -247,7 +187,6 @@ struct YesNoMain: View {
                             }
                             .ignoresSafeArea()
                         CustomTabBar(selectedTab: $selectedTab, selectColor: yesNoColor2)
-                        
                     }
                 }
             }
@@ -256,6 +195,8 @@ struct YesNoMain: View {
         .navigationViewStyle(StackNavigationViewStyle())
     }
     
+    
+    // -------------------- FUNCTIONS -------------------- //
     
     // Calls to database and obtains bias for question
     func biasOutput(question: String) -> Double{
@@ -269,7 +210,6 @@ struct YesNoMain: View {
                 outputText = "\(newWeight)"
             }
         }
-
         // run
         if (newWeight >= 0 && newWeight <= 1) {
             return newWeight
@@ -281,16 +221,13 @@ struct YesNoMain: View {
             return newWeight
         }
         /*else if (question == "") {
-            return bias
-        }*/
+         return bias
+         }*/
         // if for some reason, result is not valid provide an output
         else {
             return 0.5
         }
     }
-    
-    
-    
     
     // Returns if random bias returns TRUE or FALSE, and then provides this to yesNoDisplay to change display for YES or NO respectively
     func YesNo(x:Double) {
@@ -347,31 +284,36 @@ struct YesNoMain: View {
             }
         }
     }
-
+    
+    
+    
+    
     func loadData(parameters: [String: String], completion: @escaping (Data?, Error?) -> Void) {
         guard let url = URL(string: "\(baseURL)") else {
             print("Invalid URL")
             completion(nil, nil)
             return
         }
-
+        
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-
+        
         var postData = "function=mySQLFunction"
         for (key, value) in parameters {
-            postData += "&\(key)=\(value)"
+            var filteredValue = value.filter { $0.isLetter || $0.isNumber }
+            filteredValue = filteredValue.lowercased()
+            postData += "&\(key)=\(filteredValue)"
         }
-
+        
         request.httpBody = postData.data(using: .utf8)
-
+        
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error: \(error)")
                 completion(nil, error)
                 return
             }
-
+            
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode != 200 {
                     print("HTTP Error: \(httpResponse.statusCode)")
@@ -379,16 +321,35 @@ struct YesNoMain: View {
                     return
                 }
             }
-
+            
             guard let data = data else {
                 print("No data received")
                 completion(nil, NSError(domain: "NoDataReceivedDomain", code: 0, userInfo: nil))
                 return
             }
-
+            
             completion(data, nil)
         }.resume()
     }
+    
+    
+    func loadResult(question: String) {
+        bias = biasOutput(question: question)
+        loadWeightings(question: question) { updatedBias, error in
+            if error != nil {
+                // Handle the error
+                return
+            }
+            guard let bias = updatedBias else {
+                // Handle the case where the updated bias value is not available
+                return
+            }
+            // Pass the updated bias value to the YesNo function
+            YesNo(x: bias)
+        }
+    }
+    
+    
     
     func loadWeightings(question: String, completion: @escaping (Double?, Error?) -> Void) {
         let keywords = question.split(separator: " ")
@@ -396,21 +357,21 @@ struct YesNoMain: View {
         for (index, keyword) in keywords.enumerated() {
             parameters["param\(index + 1)"] = String(keyword)
         }
-
+        
         loadData(parameters: parameters) { data, error in
             if let error = error {
                 print("Error: \(error)")
                 completion(nil, error)
                 return
             }
-
+            
             guard let data = data else {
                 print("No data received")
                 let jsonWeight = 0.5
                 completion(jsonWeight, nil)
                 return
             }
-
+            
             do {
                 let decodedData = try JSONSerialization.jsonObject(with: data, options: [])
                 if let jsonArray = decodedData as? [[String: Any]] {
@@ -463,4 +424,3 @@ struct YesNoMain_Previews: PreviewProvider {
  > Am I not smart? = 30%
  
  - If no input entered, but button is pressed, use 50%/50% Yes-No.
-
